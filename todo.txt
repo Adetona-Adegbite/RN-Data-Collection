@@ -1,0 +1,7 @@
+Make a Page for the Form Details
+Add the Search Functionality to get forms
+Allow the User to Fill The forms
+Allow usrs to submit forms offline
+SHow analysis of the data on the form ddetails page
+Finish the overall styling of everything
+Submit user location with the form
