@@ -1,6 +1,6 @@
 import { Pressable, Text, View, StyleSheet } from "react-native";
 
-export default function AddButton({ onPress }) {
+export default function AddButton({ onPress, text }) {
   return (
     <View style={styles.buttonContainer}>
       <Pressable onPress={onPress} style={styles.button}>

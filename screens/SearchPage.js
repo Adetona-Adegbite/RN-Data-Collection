@@ -46,6 +46,8 @@ export default function SearchPage() {
       } catch (error) {
         setErrorCode("Error fetching form data");
         console.error("Error fetching form data:", error);
+      } finally {
+        setFormCode("");
       }
     }
   }
@@ -55,6 +57,7 @@ export default function SearchPage() {
       <InputBox
         placeholder="e.g 12345"
         onChangeText={(text) => setFormCode(text)}
+        value={formCode}
       />
       <SearchButton onPress={formSearch} />
       {errorMessage && <Text>{errorMessage}</Text>}

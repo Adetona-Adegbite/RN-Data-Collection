@@ -4,16 +4,20 @@ export default function InputBox({
   placeholder,
   secureTextEntry,
   onChangeText,
+  value,
+  padding = 20,
+  Xstyles,
 }) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, Xstyles]}>
       <View style={styles.inputBox}>
         <TextInput
-          style={{ color: "#ffffff", padding: 20 }}
+          style={{ color: "#ffffff", padding: padding }}
           secureTextEntry={secureTextEntry}
           placeholder={placeholder}
           placeholderTextColor="#b9b9b9"
           onChangeText={onChangeText}
+          value={value}
         />
       </View>
     </View>

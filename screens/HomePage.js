@@ -37,6 +37,7 @@ export default function HomePage() {
         console.log("Error fetching username:", error);
       }
     };
+
     async function fetchForms() {
       try {
         const userData = await AsyncStorage.getItem("userData");
@@ -76,7 +77,9 @@ export default function HomePage() {
     navigation.navigate("Form Details", { item: item });
   }
   const [fontLoaded] = useFonts({ NanumGothic_400Regular });
-
+  function profileHandler() {
+    navigation.navigate("Profile");
+  }
   return (
     <>
       {fontLoaded && (
@@ -96,6 +99,7 @@ export default function HomePage() {
               </View>
               <View style={styles.dp}>
                 <Text
+                  onPress={profileHandler}
                   style={[
                     { textAlign: "center", fontSize: 32, fontWeight: "100" },
                   ]}

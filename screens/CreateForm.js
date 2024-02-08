@@ -17,6 +17,8 @@ import { FIREBASE_DB } from "../Firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import uuid from "react-native-uuid";
 import { useNavigation } from "@react-navigation/native";
+import InputBox from "../components/InputBox";
+import AddButton from "../components/AddButton";
 
 const db = FIREBASE_DB;
 const FormCreationPage = () => {
@@ -49,6 +51,8 @@ const FormCreationPage = () => {
         userData.uid + fiveDigitCode
       );
       const formDoc = {
+        id: userData.uid + fiveDigitCode,
+        creatorId: userData.uid,
         title: formTitle,
         description: formDescription,
         questions: questions,
@@ -98,6 +102,24 @@ const FormCreationPage = () => {
 
   return (
     <SafeAreaView style={styles.page}>
+      <Text style={{ color: "white", fontSize: 32, padding: 10 }}>
+        Create Form
+      </Text>
+      <InputBox
+        placeholder="Enter Form Title"
+        value={formTitle}
+        onChangeText={setFormTitle}
+        padding={15}
+        Xstyles={{ marginTop: 20 }}
+      />
+      <InputBox
+        placeholder="Enter Form Description"
+        value={formDescription}
+        onChangeText={setFormDescription}
+        padding={15}
+      />
+
+      <AddButton onPress={newQuestionHandler} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={{
@@ -105,17 +127,6 @@ const FormCreationPage = () => {
           alignItems: "center",
         }}
       >
-        <TextInput
-          placeholder="Enter Form Title"
-          value={formTitle}
-          onChangeText={setFormTitle}
-        />
-        <TextInput
-          placeholder="Enter Form Description"
-          value={formDescription}
-          onChangeText={setFormDescription}
-        />
-        <Button title="Add Question" onPress={newQuestionHandler} />
         {Array.from({ length: numberOfQuestions }, (_, index) => (
           <QuestionCard
             key={index}
@@ -138,6 +149,7 @@ const styles = StyleSheet.create({
   scrollView: {
     width: "100%",
     height: "100%",
+    marginTop: 10,
   },
 });
 

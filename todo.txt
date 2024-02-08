@@ -1,7 +1,9 @@
-Make a Page for the Form Details
-Add the Search Functionality to get forms
+Make a Page for the Form Details *
+Add the Search Functionality to get forms *
+Make Logout Page*
+fix checkbox issue then allow for actual submission and read the data*
 Allow the User to Fill The forms
 Allow usrs to submit forms offline
 SHow analysis of the data on the form ddetails page
 Finish the overall styling of everything
-Submit user location with the form
+Submit user location with the form.

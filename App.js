@@ -14,6 +14,7 @@ import AuthenticationCheck from "./screens/AuthenticationCheck";
 import { PaperProvider } from "react-native-paper";
 import FormPage from "./screens/FormPage";
 export default function App() {
+  // AsyncStorage.clear();
   const Tab = createBottomTabNavigator();
   const Stack = createNativeStackNavigator();
   function StackScreen() {
@@ -24,7 +25,11 @@ export default function App() {
         }}
       >
         <Stack.Screen name="Home" component={HomePage} />
-        <Stack.Screen name="Profile" component={ProfilePage} />
+        <Stack.Screen
+          name="Profile"
+          component={ProfilePage}
+          options={{ presentation: "modal" }}
+        />
         <Stack.Screen
           options={{ presentation: "modal" }}
           name="Create Form"
