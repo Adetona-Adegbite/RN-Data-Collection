@@ -74,6 +74,7 @@ export default function HomePage() {
   }, []);
   const navigation = useNavigation();
   function formDetailsHandler(item) {
+    AsyncStorage.setItem("formId", item.formID);
     navigation.navigate("Form Details", { item: item });
   }
   const [fontLoaded] = useFonts({ NanumGothic_400Regular });

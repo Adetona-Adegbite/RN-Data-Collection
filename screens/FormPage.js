@@ -39,25 +39,27 @@ export default function FormPage({ route }) {
     }
     preLoad();
   }, []);
-  async function fetchFormSubmissions() {
-    try {
-      console.log(formData);
-      const q = query(
-        collection(db, "form-submissions"),
-        where("formId", "==", formData.id)
-      );
-      const querySnapshot = await getDocs(q);
-      const submissions = [];
-      querySnapshot.forEach((doc) => {
-        const submissionData = doc.data();
-        submissions.push(submissionData.questions);
-      });
-      console.log(submissions);
-      // setFormSubmissions(submissions);
-    } catch (error) {
-      console.error("Error fetching form submissions:", error);
-    }
-  }
+  // async function fetchFormSubmissions() {
+  //   try {
+  //     console.log(formData);
+  //     const formSubmissionsRef = doc(
+  //       db,
+  //       "form-submissions",
+  //       formData.id,
+  //       "user-responses"
+  //     );
+  //     const querySnapshot = await getDocs(collection(formSubmissionsRef));
+  //     const submissions = [];
+  //     querySnapshot.forEach((doc) => {
+  //       const submissionData = doc.data();
+  //       submissions.push(submissionData);
+  //     });
+  //     console.log(submissions);
+  //     // setFormSubmissions(submissions);
+  //   } catch (error) {
+  //     console.error("Error fetching form submissions:", error);
+  //   }
+  // }
   async function submitHandler() {
     const payload = {
       formCreatorId: formData.creatorId,
@@ -86,7 +88,7 @@ export default function FormPage({ route }) {
     }
   }
 
-  function renderQuestions(question) {
+  function renderQuestions(question, number) {
     function optionResponseHandler(questionId, option, selected) {
       // console.log(option);
       console.log(selected);
@@ -116,6 +118,8 @@ export default function FormPage({ route }) {
       case 0: // Multiple Choice
         return (
           <View style={styles.question} key={question.id}>
+            <Text style={styles.number}>{number}</Text>
+
             <Text style={styles.text}>{question.question}</Text>
             <View style={styles.optionBox}>
               {question.options.map((option, index) => (
@@ -135,21 +139,25 @@ export default function FormPage({ route }) {
       case 1: // Short Answer
         return (
           <View style={styles.question} key={question.id}>
+            <Text style={styles.number}>{number}</Text>
+
             <Text style={styles.text}>{question.question}</Text>
             <TextInput
               onChange={(text) => textReponseHandler(question.id, text)}
-              style={{ borderWidth: 1, borderColor: "black" }}
+              style={styles.inputBox}
             />
           </View>
         );
       case 2: // Long Paragraph
         return (
           <View style={styles.question} key={question.id}>
+            <Text style={styles.number}>{number}</Text>
+
             <Text style={styles.text}>{question.question}</Text>
             <TextInput
               multiline
               numberOfLines={4}
-              style={{ borderWidth: 1, borderColor: "black" }}
+              style={styles.inputBox}
               onChange={(text) => textReponseHandler(question.id, text)}
             />
           </View>
@@ -158,6 +166,7 @@ export default function FormPage({ route }) {
         return (
           <View style={styles.question} key={question.id}>
             <Text style={styles.text}>{question.question}</Text>
+            <Text style={styles.number}>{number}</Text>
             {question.options.map((option, index) => (
               <View style={styles.option} key={index}>
                 <Text style={styles.text}>{option.text}</Text>
@@ -183,13 +192,13 @@ export default function FormPage({ route }) {
         >
           <Text style={styles.title}>{formData.title}</Text>
           <View style={styles.description}>
-            <Text style={styles.text}>{formData.description}</Text>
+            <Text style={styles.descriptionText}>{formData.description}</Text>
           </View>
-          {formData.questions.map((question) => {
-            return renderQuestions(question);
+          {formData.questions.map((question, index) => {
+            return renderQuestions(question, index + 1);
           })}
           <Button title="Submit" onPress={submitHandler} />
-          <Button title="Query" onPress={fetchFormSubmissions} />
+          {/* <Button title="Query" onPress={fetchFormSubmissions} /> */}
         </ScrollView>
       ) : (
         <Text>No form data available</Text>
@@ -207,6 +216,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 54,
+    color: "white",
   },
   optionBox: {
     display: "flex",
@@ -218,26 +228,53 @@ const styles = StyleSheet.create({
   option: {
     width: "48%",
   },
-
+  number: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
   question: {
-    // backgroundColor: "yellow",
     width: "75%",
     padding: 20,
+    marginBottom: 20,
+    backgroundColor: "#DFE4E6",
+    borderRadius: 10,
+    shadowColor: "black",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
-
   description: {
     width: "60%",
     height: "auto",
-    // backgroundColor: "black",
+    marginBottom: 50,
   },
-  text: {
+  descriptionText: {
     color: "white",
   },
+  text: {
+    color: "black",
+    fontSize: 18,
+  },
+  inputBox: {
+    backgroundColor: "white",
+    borderColor: "black",
+    borderWidth: 1,
+    width: "75%",
+    borderRadius: 25,
+    marginBottom: 20,
+    marginTop: 10,
+    padding: 6,
+  },
   form: {
-    backgroundColor: "red",
+    backgroundColor: "#859982",
     borderRadius: 10,
     width: "90%",
     minHeight: 600,
+    marginTop: 20,
   },
   formContainer: {
     alignItems: "center",

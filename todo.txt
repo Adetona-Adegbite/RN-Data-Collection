@@ -7,3 +7,8 @@ Allow usrs to submit forms offline
 SHow analysis of the data on the form ddetails page
 Finish the overall styling of everything
 Submit user location with the form.
+
+
+
+Input box error on android,
+form submissions not adding but updating

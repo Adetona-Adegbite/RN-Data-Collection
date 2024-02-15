@@ -23,22 +23,32 @@ import Checkbox from "expo-checkbox";
 export default function FormDetails({ route }) {
   const [formData, setFormData] = useState({});
   const [formResponses, setFormResponses] = useState([]);
-  const [formId, setFormId] = useState("");
-
+  const [questionAnalysis, setQuestionAnalysis] = useState({});
   useEffect(() => {
     const { params } = route;
     const itemData = params?.item;
 
-    const fetchFormData = async () => {
+    const fetchFormId = async () => {
       try {
         const userData = await AsyncStorage.getItem("userData");
         const formID = params?.item.formID;
-        setFormId(formID);
-        // console.log(formID);
-        const { uid } = JSON.parse(userData);
-        // console.log(uid);
+      } catch (error) {
+        console.error("Error fetching form ID:", error);
+      }
+    };
 
-        // Assuming 'users' is the collection where each user's data is stored
+    fetchFormId();
+  }, [route]);
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem("userData");
+        const formID = await AsyncStorage.getItem("formId");
+        console.log(formID);
+
+        const { uid } = JSON.parse(userData);
+
         const userDocRef = doc(
           FIREBASE_DB,
           "users",
@@ -50,13 +60,11 @@ export default function FormDetails({ route }) {
 
         if (userFormDocSnapshot.exists()) {
           const fetchedFormData = userFormDocSnapshot.data();
-          // setFormData(fetchedFormData);
           const allFormData = {
             title: fetchedFormData.title,
             description: fetchedFormData.description,
             questions: fetchedFormData.questions,
           };
-          // console.log(allFormData.questions[0].options);
           setFormData(allFormData);
         } else {
           console.log("No such document!");
@@ -67,75 +75,187 @@ export default function FormDetails({ route }) {
     };
     fetchFormData();
   }, []);
-  async function fetchFormSubmissions() {
-    try {
-      const q = query(
-        collection(FIREBASE_DB, "form-submissions"),
-        where("formId", "==", formId)
+
+  useLayoutEffect(() => {
+    async function fetchFormSubmissions() {
+      const formID = await AsyncStorage.getItem("formId");
+
+      console.log("formId", formID);
+      const q = collection(
+        FIREBASE_DB,
+        "form-submissions",
+        formID,
+        "user-responses"
       );
-      const querySnapshot = await getDocs(q);
-      const submissions = [];
+      try {
+        const querySnapshot = await getDocs(q);
+        const submissions = [];
 
-      querySnapshot.forEach((doc) => {
-        const submissionData = doc.data();
-        submissions.push(submissionData.questions);
-      });
-      // console.log("submissi?Son data", submissions);
+        querySnapshot.forEach((doc) => {
+          const submissionData = doc.data();
+          submissions.push(submissionData.questions);
+        });
 
-      // setFormResponses(formattedResponses);
-      // console.log(formResponses);
-      const formattedData = [];
-      submissions.forEach((response) => {
-        response.forEach((item) => {
-          formattedData.push({
-            questionNumber: item.questionId,
-            question: item.question,
-            options: item.options || "",
-            response: item.response,
+        const formattedResponses = [];
+
+        submissions.forEach((questions) => {
+          questions.forEach((question) => {
+            formattedResponses.push({
+              questionNumber: question.questionId,
+              question: question.question,
+              options: question.options || "",
+              response: question.response,
+            });
           });
         });
-      });
-      // console.log(formattedData);
 
-      const structuredResponses = formattedData.map((question) => {
-        const responses = question.response;
-        const responseCounts = {};
+        const structuredResponses = structureResponses(formattedResponses);
+        const finalStructure = [];
 
-        if (Array.isArray(question.options)) {
-          question.options.forEach((option) => {
-            responseCounts[option.text] = 0;
-          });
-        }
+        structuredResponses.forEach((res) => {
+          const { id, question, options, response } = res;
 
-        if (responses instanceof Object) {
-          Object.keys(responses).forEach((optionId) => {
-            if (responses[optionId]) {
-              const selectedOption = question.options.find(
-                (option) => option.id.toString() === optionId
-              );
-              if (selectedOption) {
-                responseCounts[selectedOption.text] += 1;
+          const existingEntryIndex = finalStructure.findIndex(
+            (entry) => entry.id === id
+          );
+
+          if (existingEntryIndex !== -1) {
+            options.forEach((option) => {
+              const existingOption = finalStructure[
+                existingEntryIndex
+              ].options.find((opt) => opt.option === option.option);
+              if (existingOption) {
+                existingOption.count += option.count;
+              } else {
+                finalStructure[existingEntryIndex].options.push({
+                  option: option.option,
+                  count: option.count,
+                });
+              }
+            });
+
+            if (response !== null) {
+              const existingResponse = finalStructure[
+                existingEntryIndex
+              ].responses.find((resp) => resp[response]);
+              if (existingResponse) {
+                existingResponse[response]++;
+              } else {
+                finalStructure[existingEntryIndex].responses.push({
+                  [response]: 1,
+                });
               }
             }
-          });
-        } else if (typeof responses === "string") {
-          if (responseCounts[responses] !== undefined) {
-            responseCounts[responses] += 1;
           } else {
-            responseCounts[responses] = 1;
+            const newEntry = { id, question, options: [], responses: [] };
+            options.forEach((option) => {
+              newEntry.options.push({
+                option: option.option,
+                count: option.count,
+              });
+            });
+            if (response !== null) {
+              newEntry.responses.push({ [response]: 1 });
+            }
+            finalStructure.push(newEntry);
           }
-        }
+        });
+        // console.log(finalStructure);
+        const analysis = {};
+        finalStructure.forEach((entry) => {
+          if (entry.options.length > 0) {
+            // MCQ
+            const totalResponses = entry.options.reduce(
+              (total, option) => total + option.count,
+              0
+            );
+            const optionsPercentage = entry.options.map((option) => ({
+              option: option.option,
+              percentage: ((option.count / totalResponses) * 100).toFixed(2),
+            }));
+            analysis[entry.question] = optionsPercentage;
+          } else {
+            // Direct Text Answer
+            const totalResponses = entry.responses.length;
+            // console.log("resposnes", entry);
+            const uniqueResponses = Array.from(new Set(entry.responses)); // Get unique responses
+            // console.log("unique resposnes", uniqueResponses);
+            const transformedDataset = uniqueResponses.map((obj) => {
+              const newObj = {};
+              Object.keys(obj).forEach((key) => {
+                newObj["option"] = key;
+              });
+              return newObj;
+            });
+            // console.log("improved dataset", transformedDataset);
+            const optionsPercentage = transformedDataset.map((response) => ({
+              option: response.option,
+              percentage: "50",
+            }));
+            analysis[entry.question] =
+              optionsPercentage.length === 1
+                ? optionsPercentage[0].option
+                : optionsPercentage;
+          }
+        });
+        console.log(analysis);
 
-        return {
-          question: question.question,
-          responseCounts: responseCounts,
-        };
-      });
-
-      console.log(structuredResponses);
-    } catch (error) {
-      console.error("Error fetching form submissions:", error);
+        setQuestionAnalysis(analysis);
+        setFormResponses(structuredResponses);
+      } catch (error) {
+        console.error("Error fetching form submissions:", error);
+      }
     }
+
+    fetchFormSubmissions();
+  }, []);
+
+  function structureResponses(formattedResponses) {
+    const structuredResponses = [];
+    formattedResponses.forEach((question) => {
+      const responseCounts = {};
+      const questionOptions = [];
+
+      if (Array.isArray(question.options)) {
+        question.options.forEach((option) => {
+          responseCounts[option.text] = 0;
+          questionOptions.push(option.text);
+        });
+      }
+
+      if (!Array.isArray(question.options) && question.response) {
+        const response = question.response;
+        if (responseCounts[response] !== undefined) {
+          responseCounts[response] += 1;
+        } else {
+          responseCounts[response] = 1;
+        }
+        questionOptions.push(response);
+      }
+
+      if (question.response instanceof Object) {
+        Object.keys(question.response).forEach((optionId) => {
+          const selectedOption = question.options.find(
+            (option) => option.id.toString() === optionId
+          );
+          if (selectedOption && question.response[optionId]) {
+            responseCounts[selectedOption.text] += 1;
+          }
+        });
+      }
+
+      structuredResponses.push({
+        id: question.questionNumber,
+        question: question.question,
+        options: questionOptions.map((option) => ({
+          option: option,
+          count: responseCounts[option] || 0,
+        })),
+        response: questionOptions.length < 1 ? question.response : null,
+      });
+    });
+
+    return structuredResponses;
   }
 
   function renderQuestions(question) {
@@ -177,15 +297,16 @@ export default function FormDetails({ route }) {
           <View style={styles.question} key={question.id}>
             <Text style={styles.text}>{question.question}</Text>
             {question.options.map((option, index) => (
-              <>
+              <View key={index}>
                 <Text style={styles.text}>{option.text}</Text>
-                <Checkbox key={index} />
-              </>
+                <Checkbox />
+              </View>
             ))}
           </View>
         );
     }
   }
+
   return (
     <SafeAreaView style={styles.page}>
       {formData && formData.questions && formData.questions.length > 0 ? (
@@ -193,14 +314,23 @@ export default function FormDetails({ route }) {
           style={styles.form}
           contentContainerStyle={styles.formContainer}
         >
-          <Button title="Query Data " onPress={fetchFormSubmissions} />
           <Text style={styles.title}>{formData.title}</Text>
           <View style={styles.description}>
             <Text style={styles.text}>{formData.description}</Text>
           </View>
-          {formData.questions.map((question) => {
-            return renderQuestions(question);
-          })}
+          <Text style={styles.analysisHeader}>Response Analysis</Text>
+          {Object.keys(questionAnalysis).map((question, index) => (
+            <View key={index} style={styles.analysisItem}>
+              <Text style={styles.analysisQuestion}>{question}</Text>
+              <View style={styles.analysisOptions}>
+                {questionAnalysis[question].map((option, idx) => (
+                  <Text key={idx}>
+                    {option.option}: {option.percentage}%
+                  </Text>
+                ))}
+              </View>
+            </View>
+          ))}
         </ScrollView>
       ) : (
         <Text>No form data available</Text>
@@ -208,6 +338,7 @@ export default function FormDetails({ route }) {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   page: {
     flex: 1,
@@ -217,6 +348,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 54,
+    color: "white",
   },
   optionBox: {
     display: "flex",
@@ -228,28 +360,50 @@ const styles = StyleSheet.create({
   option: {
     width: "48%",
   },
-
   question: {
-    // backgroundColor: "yellow",
     width: "75%",
     padding: 20,
+    marginBottom: 20,
   },
-
   description: {
     width: "60%",
     height: "auto",
-    // backgroundColor: "black",
   },
   text: {
     color: "white",
   },
   form: {
-    backgroundColor: "red",
+    backgroundColor: "#859982",
     borderRadius: 10,
     width: "90%",
     minHeight: 600,
   },
   formContainer: {
     alignItems: "center",
+  },
+  analysisHeader: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    marginTop: 20,
+    marginBottom: 50,
+  },
+  analysisItem: {
+    backgroundColor: "#DFE4E6",
+    padding: 10,
+    borderRadius: 5,
+    width: "60%",
+    marginBottom: 10,
+  },
+  analysisQuestion: {
+    color: "black",
+    fontSize: 20,
+    marginBottom: 5,
+  },
+  analysisOptions: {
+    flexDirection: "column",
+    flexWrap: "wrap",
+    gap: 15,
+    marginTop: 10,
   },
 });
