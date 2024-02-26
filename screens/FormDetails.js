@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
   Button,
+  Dimensions,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -19,11 +20,13 @@ import {
 } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Checkbox from "expo-checkbox";
+import { LineChart, PieChart } from "react-native-chart-kit";
 
 export default function FormDetails({ route }) {
   const [formData, setFormData] = useState({});
   const [formResponses, setFormResponses] = useState([]);
   const [questionAnalysis, setQuestionAnalysis] = useState({});
+  const [chartData, setChartData] = useState([]);
   useEffect(() => {
     const { params } = route;
     const itemData = params?.item;
@@ -171,7 +174,9 @@ export default function FormDetails({ route }) {
             );
             const optionsPercentage = entry.options.map((option) => ({
               option: option.option,
-              percentage: ((option.count / totalResponses) * 100).toFixed(2),
+              percentage: `${((option.count / totalResponses) * 100).toFixed(
+                2
+              )}%`,
             }));
             analysis[entry.question] = optionsPercentage;
           } else {
@@ -190,7 +195,7 @@ export default function FormDetails({ route }) {
             // console.log("improved dataset", transformedDataset);
             const optionsPercentage = transformedDataset.map((response) => ({
               option: response.option,
-              percentage: "50",
+              percentage: "50%",
             }));
             analysis[entry.question] =
               optionsPercentage.length === 1
@@ -198,7 +203,42 @@ export default function FormDetails({ route }) {
                 : optionsPercentage;
           }
         });
-        console.log(analysis);
+        let chartFormat = []; // Use an array to store data for multiple questions
+        for (key in analysis) {
+          let questionData = {
+            key: key,
+            options: [], // Array to store options for each question
+          };
+          for (option in analysis[key]) {
+            let optionData = {
+              option: analysis[key][option].option,
+              percentage: parseInt(analysis[key][option].percentage),
+            };
+            questionData.options.push(optionData); // Add option data to the options array
+          }
+          chartFormat.push(questionData); // Add question data to the chartFormat array
+        }
+        console.log(chartFormat);
+
+        const pieChartData = chartFormat.map((questionData, index) => {
+          return questionData.options.map((optionData) => ({
+            title: questionData.key,
+            name: optionData.option, // Use option name as the name
+            population: optionData.percentage, // Convert percentage to float
+            color: getRandomColor(), // Generate a random color for each slice (you can replace this with your own color logic)
+            legendFontColor: "rgba(0,0,0,0.6)",
+            legendFontSize: 15,
+          }));
+        });
+        console.log(pieChartData);
+        function getRandomColor() {
+          // Function to generate a random color
+          return `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(
+            Math.random() * 256
+          )}, ${Math.floor(Math.random() * 256)})`;
+        }
+
+        setChartData(pieChartData);
 
         setQuestionAnalysis(analysis);
         setFormResponses(structuredResponses);
@@ -319,7 +359,7 @@ export default function FormDetails({ route }) {
             <Text style={styles.text}>{formData.description}</Text>
           </View>
           <Text style={styles.analysisHeader}>Response Analysis</Text>
-          {Object.keys(questionAnalysis).map((question, index) => (
+          {/* {Object.keys(questionAnalysis).map((question, index) => (
             <View key={index} style={styles.analysisItem}>
               <Text style={styles.analysisQuestion}>{question}</Text>
               <View style={styles.analysisOptions}>
@@ -328,9 +368,48 @@ export default function FormDetails({ route }) {
                     {option.option}: {option.percentage}%
                   </Text>
                 ))}
+              </View> */}
+          {/* </View>
+          ))} */}
+          <View>
+            {chartData.map((questionData, index) => (
+              <View key={index}>
+                <Text style={{ textAlign: "center", fontSize: 24 }}>
+                  {questionData[index].title}
+                </Text>
+                <PieChart
+                  data={questionData}
+                  // label={(datum) => `${datum.name}: ${datum.population}%`} // add percentage to label
+                  width={350}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: "#e26a00",
+                    backgroundGradientFrom: "#fb8c00",
+                    backgroundGradientTo: "#ffa726",
+                    decimalPlaces: 2, // optional, defaults to 2dp
+                    color: () => `#000000`,
+                    labelColor: () => `#000000`,
+                    style: {
+                      borderRadius: 16,
+                    },
+                    propsForDots: {
+                      r: "6",
+                      strokeWidth: "2",
+                      stroke: "#ffa726",
+                    },
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                  accessor={"population"}
+                  backgroundColor={"transparent"}
+                  absolute
+                />
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </ScrollView>
       ) : (
         <Text>No form data available</Text>
