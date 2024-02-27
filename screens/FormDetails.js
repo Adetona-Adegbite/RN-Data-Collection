@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import {
   Button,
   Dimensions,
+  LogBox,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -106,7 +107,7 @@ export default function FormDetails({ route }) {
             formattedResponses.push({
               questionNumber: question.questionId,
               question: question.question,
-              options: question.options || "",
+              options: question.options || [],
               response: question.response,
             });
           });
@@ -197,6 +198,7 @@ export default function FormDetails({ route }) {
               option: response.option,
               percentage: "50%",
             }));
+            // console.log(optionsPercentage);
             analysis[entry.question] =
               optionsPercentage.length === 1
                 ? optionsPercentage[0].option
@@ -204,21 +206,40 @@ export default function FormDetails({ route }) {
           }
         });
         let chartFormat = []; // Use an array to store data for multiple questions
+        console.log(analysis);
         for (key in analysis) {
           let questionData = {
             key: key,
             options: [], // Array to store options for each question
           };
-          for (option in analysis[key]) {
+          // console.log(key);
+          console.log(analysis[key]);
+          if (Array.isArray(analysis[key])) {
+            for (option in analysis[key]) {
+              // console.log(analysis);
+              let optionData = {
+                option: analysis[key][option].option,
+                percentage: parseInt(analysis[key][option].percentage),
+              };
+              // console.log(optionData);
+              questionData.options.push(optionData); // Add option data to the options array
+            }
+          } else {
+            // console.log(formResponses);
             let optionData = {
-              option: analysis[key][option].option,
-              percentage: parseInt(analysis[key][option].percentage),
+              option: analysis[key], // Assuming 'Ggg' is the option
+              percentage: `${
+                formResponses > 0
+                  ? ((1 / formResponses.length) * 100).toFixed(2)
+                  : 100
+              }`, // Set a default percentage value
             };
-            questionData.options.push(optionData); // Add option data to the options array
+            console.log(optionData);
+            questionData.options.push(optionData); // Add op
           }
           chartFormat.push(questionData); // Add question data to the chartFormat array
         }
-        console.log(chartFormat);
+        // console.log(chartFormat);
 
         const pieChartData = chartFormat.map((questionData, index) => {
           return questionData.options.map((optionData) => ({
@@ -230,7 +251,7 @@ export default function FormDetails({ route }) {
             legendFontSize: 15,
           }));
         });
-        console.log(pieChartData);
+        // console.log(pieChartData);
         function getRandomColor() {
           // Function to generate a random color
           return `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(

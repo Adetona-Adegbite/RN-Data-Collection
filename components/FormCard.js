@@ -1,14 +1,24 @@
-import { Text, View, StyleSheet, Pressable } from "react-native";
+import { Text, View, StyleSheet, Pressable, Alert } from "react-native";
 import ShowDetailsButton from "./DetailsButton";
+import * as Clipboard from "expo-clipboard";
 
 export default function FormCard({ onPress, title, id }) {
+  const copyToClipboard = async () => {
+    console.log(id);
+    try {
+      await Clipboard.setStringAsync(id);
+    } catch (e) {
+      console.log("Error Copying to Clipboard", e);
+    }
+    // Alert.alert("Copied to Clipboard");
+  };
   return (
     <Pressable onPress={onPress} style={styles.cardContainer}>
       <View style={styles.textContainer}>
         <Text style={styles.nameText}>{title}</Text>
         <Text style={styles.dataText}>{id}</Text>
       </View>
-      <ShowDetailsButton />
+      <ShowDetailsButton onPress={copyToClipboard} />
     </Pressable>
   );
 }

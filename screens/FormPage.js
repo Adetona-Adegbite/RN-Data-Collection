@@ -19,9 +19,11 @@ import {
 } from "firebase/firestore";
 import { FIREBASE_DB } from "../Firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 
 export default function FormPage({ route }) {
   const db = FIREBASE_DB;
+  const navigation = useNavigation();
   const [uid, setUid] = useState("");
   const [formData, setFormData] = useState("");
   const [selectedOptions, setSelectedOptions] = useState({});
@@ -83,6 +85,7 @@ export default function FormPage({ route }) {
       );
       await setDoc(docRef, payload);
       console.log("Form submitted successfully!");
+      navigation.navigate("Home");
     } catch (error) {
       console.error("Error submitting form:", error);
     }
@@ -103,9 +106,10 @@ export default function FormPage({ route }) {
     }
 
     function textReponseHandler(questionId, option) {
+      console.log(option);
       setSelectedOptions((prev) => ({
         ...prev,
-        [questionId]: option.nativeEvent.text,
+        [questionId]: option,
       }));
       console.log(selectedOptions);
     }
@@ -143,7 +147,7 @@ export default function FormPage({ route }) {
 
             <Text style={styles.text}>{question.question}</Text>
             <TextInput
-              onChange={(text) => textReponseHandler(question.id, text)}
+              onChangeText={(text) => textReponseHandler(question.id, text)}
               style={styles.inputBox}
             />
           </View>
@@ -158,26 +162,29 @@ export default function FormPage({ route }) {
               multiline
               numberOfLines={4}
               style={styles.inputBox}
-              onChange={(text) => textReponseHandler(question.id, text)}
+              onChangeText={(text) => textReponseHandler(question.id, text)}
             />
           </View>
         );
       case 3: // Check Box
         return (
           <View style={styles.question} key={question.id}>
-            <Text style={styles.text}>{question.question}</Text>
             <Text style={styles.number}>{number}</Text>
-            {question.options.map((option, index) => (
-              <View style={styles.option} key={index}>
-                <Text style={styles.text}>{option.text}</Text>
-                <Checkbox
-                  onValueChange={(selected) =>
-                    optionResponseHandler(question.id, option, selected)
-                  }
-                  value={selectedOptions[question.id]?.[option.id] || false}
-                />
-              </View>
-            ))}
+
+            <Text style={styles.text}>{question.question}</Text>
+            <View style={styles.optionBox}>
+              {question.options.map((option, index) => (
+                <View style={styles.option} key={index}>
+                  <Text>{option.text}</Text>
+                  <Checkbox
+                    onValueChange={(selected) =>
+                      optionResponseHandler(question.id, option, selected)
+                    }
+                    value={selectedOptions[question.id]?.[option.id] || false}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
         );
     }

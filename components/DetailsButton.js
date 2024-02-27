@@ -1,10 +1,10 @@
 import { Pressable, Text, View, StyleSheet } from "react-native";
 
-export default function ShowDetailsButton() {
+export default function ShowDetailsButton({ onPress }) {
   return (
     <View style={styles.buttonContainer}>
-      <Pressable style={styles.button}>
-        <Text style={styles.buttonText}>Show Details</Text>
+      <Pressable onPress={onPress} style={styles.button}>
+        <Text style={styles.buttonText}>Copy to Clipboard</Text>
       </Pressable>
     </View>
   );

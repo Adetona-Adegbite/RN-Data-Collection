@@ -9,18 +9,24 @@ import { FIREBASE_DB } from "../Firebase";
 export default function SearchPage() {
   const [formCode, setFormCode] = useState("");
   const [errorMessage, setErrorCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   async function formSearch() {
     if (formCode == "") {
       setErrorCode("Input can't be empty");
+      Alert.alert(errorMessage);
+
       return;
     } else if (formCode.length !== 9) {
-      setErrorCode("Code has to be 5 characters long");
+      setErrorCode("Code has to be 9 characters long");
+      Alert.alert(errorMessage);
+
       return;
     } else {
       try {
         // Splitting the formCode into userUID and formID
+        setLoading(true);
         const userUID = formCode.substring(0, 4);
         const formID = formCode.substring(4);
         const userFormDocRef = doc(
@@ -46,6 +52,7 @@ export default function SearchPage() {
       } catch (error) {
         setErrorCode("Error fetching form data");
         console.error("Error fetching form data:", error);
+        Alert.alert(errorMessage);
       } finally {
         setFormCode("");
       }
@@ -53,14 +60,22 @@ export default function SearchPage() {
   }
   return (
     <SafeAreaView style={styles.page}>
-      <Text style={[styles.title, { marginTop: 40 }]}>Enter Form Code</Text>
-      <InputBox
-        placeholder="e.g 12345"
-        onChangeText={(text) => setFormCode(text)}
-        value={formCode}
-      />
-      <SearchButton onPress={formSearch} />
-      {errorMessage && <Text>{errorMessage}</Text>}
+      {!loading ? (
+        <>
+          <Text style={[styles.title, { marginTop: 40 }]}>Enter Form Code</Text>
+          <InputBox
+            placeholder="e.g 12345"
+            onChangeText={(text) => setFormCode(text)}
+            value={formCode}
+          />
+          <SearchButton onPress={formSearch} />
+        </>
+      ) : (
+        <>
+          <Text style={{ color: "white", fontSize: 32 }}>Loading...</Text>
+          {errorMessage && <Text>{errorMessage}</Text>}
+        </>
+      )}
     </SafeAreaView>
   );
 }
