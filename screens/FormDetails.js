@@ -22,11 +22,15 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Checkbox from "expo-checkbox";
 import { LineChart, PieChart } from "react-native-chart-kit";
+import { jsonToCSV } from "react-native-csv";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 export default function FormDetails({ route }) {
   const [formData, setFormData] = useState({});
   const [formResponses, setFormResponses] = useState([]);
   const [questionAnalysis, setQuestionAnalysis] = useState({});
+  const [formattedResponse, setFormattedResponse] = useState([]);
   const [chartData, setChartData] = useState([]);
   useEffect(() => {
     const { params } = route;
@@ -113,7 +117,12 @@ export default function FormDetails({ route }) {
           });
         });
 
+        // console.log(formattedResponses[0]);
+        // console.log(formattedResponses[1]);
+
+        setFormattedResponse(formattedResponses);
         const structuredResponses = structureResponses(formattedResponses);
+
         const finalStructure = [];
 
         structuredResponses.forEach((res) => {
@@ -206,14 +215,14 @@ export default function FormDetails({ route }) {
           }
         });
         let chartFormat = []; // Use an array to store data for multiple questions
-        console.log(analysis);
+        // console.log(analysis);
         for (key in analysis) {
           let questionData = {
             key: key,
             options: [], // Array to store options for each question
           };
           // console.log(key);
-          console.log(analysis[key]);
+          // console.log(analysis[key]);
           if (Array.isArray(analysis[key])) {
             for (option in analysis[key]) {
               // console.log(analysis);
@@ -229,12 +238,11 @@ export default function FormDetails({ route }) {
             let optionData = {
               option: analysis[key], // Assuming 'Ggg' is the option
               percentage: `${
-                formResponses > 0
-                  ? ((1 / formResponses.length) * 100).toFixed(2)
-                  : 100
+                formResponses > 0 &&
+                ((1 / formResponses.length) * 100).toFixed(2)
               }`, // Set a default percentage value
             };
-            console.log(optionData);
+            // console.log(optionData);
             questionData.options.push(optionData); // Add op
           }
           chartFormat.push(questionData); // Add question data to the chartFormat array
@@ -270,7 +278,46 @@ export default function FormDetails({ route }) {
 
     fetchFormSubmissions();
   }, []);
+  function downloadAnalysisCSV() {
+    const csvFields = ["Question", "Response"]; // Define CSV fields
+    console.log(formattedResponse);
+    const csvData = formattedResponse.map((response) => {
+      const question = response.question;
+      let responseText;
 
+      if (typeof response.response === "string") {
+        responseText = response.response;
+      } else {
+        const trueKeys = Object.keys(response.response).filter(
+          (key) => response.response[key]
+        );
+        responseText = trueKeys
+          .map((key) => response.options[key].text)
+          .join(", ");
+      }
+
+      return [question, responseText];
+    });
+
+    const csv = jsonToCSV({ fields: csvFields, data: csvData });
+
+    console.log(csv);
+
+    const directoryUri = FileSystem.documentDirectory;
+    const fileUri = directoryUri + `formResponses.csv`;
+
+    FileSystem.writeAsStringAsync(fileUri, csv, { encoding: "utf8" })
+      .then(() => {
+        console.log(`wrote file ${fileUri}`);
+      })
+      .catch((error) => console.error(error));
+
+    Sharing.shareAsync(fileUri)
+      .then(() => {
+        console.log(`shared file ${fileUri}`);
+      })
+      .catch((error) => console.error(error));
+  }
   function structureResponses(formattedResponses) {
     const structuredResponses = [];
     formattedResponses.forEach((question) => {
@@ -431,6 +478,7 @@ export default function FormDetails({ route }) {
               </View>
             ))}
           </View>
+          <Button onPress={downloadAnalysisCSV} title="Download csv " />
         </ScrollView>
       ) : (
         <Text>No form data available</Text>

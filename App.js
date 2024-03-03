@@ -13,8 +13,57 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import AuthenticationCheck from "./screens/AuthenticationCheck";
 import { PaperProvider } from "react-native-paper";
 import FormPage from "./screens/FormPage";
+import NetInfo from "@react-native-community/netinfo";
+
 export default function App() {
   // AsyncStorage.clear();
+  useEffect(() => {
+    const checkFormDataAndUpload = async () => {
+      // Check AsyncStorage for stored form data
+      const formData = await AsyncStorage.getItem("formData");
+      if (formData) {
+        // Check internet connectivity
+        const netInfoState = await NetInfo.fetch();
+        if (netInfoState.isConnected) {
+          // Upload formData to database
+          try {
+            const response = await db
+              .collection("formData")
+              .add(JSON.parse(formData));
+            console.log("Form data uploaded successfully:", response);
+            // Clear AsyncStorage after successful upload
+            await AsyncStorage.removeItem("formData");
+          } catch (error) {
+            console.error("Error uploading form data:", error);
+            Alert.alert(
+              "Error",
+              "Failed to upload form data. Please try again later."
+            );
+          }
+        } else {
+          // User is offline, display a message or store the data locally for later upload
+          Alert.alert(
+            "No Internet",
+            "You are offline. Form data will be uploaded once you are connected to the internet."
+          );
+        }
+      }
+    };
+
+    // Call the function on app startup
+    checkFormDataAndUpload();
+  }, []);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (!state.isConnected) {
+        console.log("No internet");
+        const navigation = useNavigation();
+        navigation.navigate("Create Form");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   const Tab = createBottomTabNavigator();
   const Stack = createNativeStackNavigator();
   function StackScreen() {
