@@ -25,9 +25,15 @@ import { LineChart, PieChart } from "react-native-chart-kit";
 import { jsonToCSV } from "react-native-csv";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import {
+  useFonts,
+  NanumGothic_400Regular,
+} from "@expo-google-fonts/nanum-gothic";
 
 export default function FormDetails({ route }) {
   const [formData, setFormData] = useState({});
+  const [fontLoaded] = useFonts({ NanumGothic_400Regular });
+
   const [formResponses, setFormResponses] = useState([]);
   const [questionAnalysis, setQuestionAnalysis] = useState({});
   const [formattedResponse, setFormattedResponse] = useState([]);
@@ -69,10 +75,11 @@ export default function FormDetails({ route }) {
         if (userFormDocSnapshot.exists()) {
           const fetchedFormData = userFormDocSnapshot.data();
           const allFormData = {
-            title: fetchedFormData.title,
+            title: fetchedFormData.title || "",
             description: fetchedFormData.description,
             questions: fetchedFormData.questions,
           };
+          console.log(allFormData);
           setFormData(allFormData);
         } else {
           console.log("No such document!");
@@ -215,7 +222,7 @@ export default function FormDetails({ route }) {
           }
         });
         let chartFormat = []; // Use an array to store data for multiple questions
-        // console.log(analysis);
+        console.log(analysis);
         for (key in analysis) {
           let questionData = {
             key: key,
@@ -238,8 +245,9 @@ export default function FormDetails({ route }) {
             let optionData = {
               option: analysis[key], // Assuming 'Ggg' is the option
               percentage: `${
-                formResponses > 0 &&
-                ((1 / formResponses.length) * 100).toFixed(2)
+                (formResponses > 0 &&
+                  ((1 / formResponses.length) * 100).toFixed(2)) ||
+                100
               }`, // Set a default percentage value
             };
             // console.log(optionData);
@@ -250,6 +258,7 @@ export default function FormDetails({ route }) {
         // console.log(chartFormat);
 
         const pieChartData = chartFormat.map((questionData, index) => {
+          // console.log(chartFormat);
           return questionData.options.map((optionData) => ({
             title: questionData.key,
             name: optionData.option, // Use option name as the name
@@ -279,45 +288,68 @@ export default function FormDetails({ route }) {
     fetchFormSubmissions();
   }, []);
   function downloadAnalysisCSV() {
-    const csvFields = ["Question", "Response"]; // Define CSV fields
-    console.log(formattedResponse);
-    const csvData = formattedResponse.map((response) => {
-      const question = response.question;
-      let responseText;
+    // Initialize a Set to store unique questions
+    const uniqueQuestions = new Set();
 
-      if (typeof response.response === "string") {
-        responseText = response.response;
-      } else {
-        const trueKeys = Object.keys(response.response).filter(
-          (key) => response.response[key]
-        );
-        responseText = trueKeys
-          .map((key) => response.options[key].text)
-          .join(", ");
-      }
-
-      return [question, responseText];
+    // Extract unique questions
+    formattedResponse.forEach((response) => {
+      uniqueQuestions.add(response.question);
     });
 
-    const csv = jsonToCSV({ fields: csvFields, data: csvData });
+    // Convert the Set to an array
+    const questions = Array.from(uniqueQuestions);
 
-    console.log(csv);
+    // Initialize CSV data with headers as questions
+    let csvData = [questions];
 
+    // Add responses to CSV data
+    formattedResponse.forEach((response) => {
+      // Initialize an array to hold responses for this row
+      let rowData = [];
+
+      // Check if response is a string or an object
+      if (typeof response.response === "string") {
+        // If response is a string, add it to rowData
+        rowData = questions.map((question) =>
+          question === response.question ? response.response : ""
+        );
+      } else {
+        // If response is an object, add each option as a separate response in the corresponding column
+        rowData = questions.map((question) => {
+          const optionIndex = response.options.findIndex(
+            (option) => option.text === question
+          );
+          return optionIndex !== -1 && response.response[optionIndex]
+            ? "Yes"
+            : "";
+        });
+      }
+
+      // Add rowData to csvData
+      csvData.push(rowData);
+    });
+
+    // Convert CSV data to CSV string
+    const csvString = csvData.map((row) => row.join(",")).join("\n");
+
+    // Write CSV string to file
     const directoryUri = FileSystem.documentDirectory;
     const fileUri = directoryUri + `formResponses.csv`;
 
-    FileSystem.writeAsStringAsync(fileUri, csv, { encoding: "utf8" })
+    FileSystem.writeAsStringAsync(fileUri, csvString, { encoding: "utf8" })
       .then(() => {
-        console.log(`wrote file ${fileUri}`);
-      })
-      .catch((error) => console.error(error));
+        console.log(`Wrote file: ${fileUri}`);
 
-    Sharing.shareAsync(fileUri)
-      .then(() => {
-        console.log(`shared file ${fileUri}`);
+        // Share CSV file
+        Sharing.shareAsync(fileUri)
+          .then(() => {
+            console.log(`Shared file: ${fileUri}`);
+          })
+          .catch((error) => console.error(error));
       })
       .catch((error) => console.error(error));
   }
+
   function structureResponses(formattedResponses) {
     const structuredResponses = [];
     formattedResponses.forEach((question) => {
@@ -417,29 +449,19 @@ export default function FormDetails({ route }) {
 
   return (
     <SafeAreaView style={styles.page}>
-      {formData && formData.questions && formData.questions.length > 0 ? (
-        <ScrollView
-          style={styles.form}
-          contentContainerStyle={styles.formContainer}
-        >
-          <Text style={styles.title}>{formData.title}</Text>
-          <View style={styles.description}>
-            <Text style={styles.text}>{formData.description}</Text>
-          </View>
-          <Text style={styles.analysisHeader}>Response Analysis</Text>
-          {/* {Object.keys(questionAnalysis).map((question, index) => (
-            <View key={index} style={styles.analysisItem}>
-              <Text style={styles.analysisQuestion}>{question}</Text>
-              <View style={styles.analysisOptions}>
-                {questionAnalysis[question].map((option, idx) => (
-                  <Text key={idx}>
-                    {option.option}: {option.percentage}%
-                  </Text>
-                ))}
-              </View> */}
-          {/* </View>
-          ))} */}
-          <View>
+      {formData ? (
+        formData.title &&
+        formData.questions &&
+        formData.questions.length > 0 ? (
+          <ScrollView
+            style={styles.form}
+            contentContainerStyle={styles.formContainer}
+          >
+            <Text style={styles.title}>{formData.title}</Text>
+            <View style={styles.description}>
+              <Text style={styles.text}>{formData.description}</Text>
+            </View>
+            <Text style={styles.analysisHeader}>Response Analysis</Text>
             {chartData.map((questionData, index) => (
               <View key={index}>
                 <Text style={{ textAlign: "center", fontSize: 24 }}>
@@ -447,14 +469,13 @@ export default function FormDetails({ route }) {
                 </Text>
                 <PieChart
                   data={questionData}
-                  // label={(datum) => `${datum.name}: ${datum.population}%`} // add percentage to label
                   width={350}
                   height={220}
                   chartConfig={{
                     backgroundColor: "#e26a00",
                     backgroundGradientFrom: "#fb8c00",
                     backgroundGradientTo: "#ffa726",
-                    decimalPlaces: 2, // optional, defaults to 2dp
+                    decimalPlaces: 2,
                     color: () => `#000000`,
                     labelColor: () => `#000000`,
                     style: {
@@ -477,11 +498,13 @@ export default function FormDetails({ route }) {
                 />
               </View>
             ))}
-          </View>
-          <Button onPress={downloadAnalysisCSV} title="Download csv " />
-        </ScrollView>
+            <Button onPress={downloadAnalysisCSV} title="Download CSV" />
+          </ScrollView>
+        ) : (
+          <Text>No form data available</Text>
+        )
       ) : (
-        <Text>No form data available</Text>
+        <Text>Loading form data...</Text>
       )}
     </SafeAreaView>
   );
@@ -491,12 +514,14 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     alignItems: "center",
-    padding: 40,
+    paddingTop: Platform.OS == "android" && 30,
     backgroundColor: "#161616",
   },
   title: {
-    fontSize: 54,
+    fontSize: 32,
+    marginVertical: 10,
     color: "white",
+    fontFamily: "NanumGothic_400Regular",
   },
   optionBox: {
     display: "flex",
@@ -519,6 +544,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "white",
+    fontFamily: "NanumGothic_400Regular",
   },
   form: {
     backgroundColor: "#859982",
@@ -535,6 +561,7 @@ const styles = StyleSheet.create({
     color: "white",
     marginTop: 20,
     marginBottom: 50,
+    fontFamily: "NanumGothic_400Regular",
   },
   analysisItem: {
     backgroundColor: "#DFE4E6",
@@ -547,6 +574,7 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 20,
     marginBottom: 5,
+    fontFamily: "NanumGothic_400Regular",
   },
   analysisOptions: {
     flexDirection: "column",

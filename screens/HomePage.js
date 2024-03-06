@@ -1,4 +1,11 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import AddButton from "../components/AddButton";
 import {
   useFonts,
@@ -6,15 +13,109 @@ import {
 } from "@expo-google-fonts/nanum-gothic";
 import FormCard from "../components/FormCard";
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FIREBASE_DB } from "../Firebase";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import NetInfo from "@react-native-community/netinfo";
 
 export default function HomePage() {
+  const navigation = useNavigation();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    async function fetchForms() {
+      try {
+        const userData = await AsyncStorage.getItem("userData");
+        if (userData !== null) {
+          const { uid } = JSON.parse(userData);
+          const userDocRef = doc(FIREBASE_DB, "users", uid.substring(0, 4));
+
+          const userDocSnapshot = await getDoc(userDocRef);
+          // console.log(userDocSnapshot.data());
+          if (userDocSnapshot.exists()) {
+            const formsCollectionRef = collection(userDocRef, "forms");
+            const formsSnapshot = await getDocs(formsCollectionRef);
+
+            const fetchedForms = [];
+            formsSnapshot.forEach((doc) => {
+              fetchedForms.push({
+                formID: doc.id,
+                title: doc.data().title,
+                // Other form data you want to retrieve
+              });
+            });
+            // console.log(fetchedForms);
+            setForms(fetchedForms);
+          } else {
+            console.log("User document does not exist");
+          }
+        }
+      } catch (error) {
+        console.log("Error fetching forms:", error);
+      }
+    }
+
+    fetchForms();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000); // Example timeout, replace with your actual fetch logic
+  }, []);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (!state.isConnected) {
+        console.log("No internet");
+        navigation.navigate("Saved");
+      } else {
+        // console.log("It sha worked");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   const [username, setUsername] = useState("");
   const [forms, setForms] = useState([]);
   // console.log(forms);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      async function fetchForms() {
+        try {
+          const userData = await AsyncStorage.getItem("userData");
+          if (userData !== null) {
+            const { uid } = JSON.parse(userData);
+            const userDocRef = doc(FIREBASE_DB, "users", uid.substring(0, 4));
+
+            const userDocSnapshot = await getDoc(userDocRef);
+            // console.log(userDocSnapshot.data());
+            if (userDocSnapshot.exists()) {
+              const formsCollectionRef = collection(userDocRef, "forms");
+              const formsSnapshot = await getDocs(formsCollectionRef);
+
+              const fetchedForms = [];
+              formsSnapshot.forEach((doc) => {
+                fetchedForms.push({
+                  formID: doc.id,
+                  title: doc.data().title,
+                  // Other form data you want to retrieve
+                });
+              });
+              // console.log(fetchedForms);
+              setForms(fetchedForms);
+            } else {
+              console.log("User document does not exist");
+            }
+          }
+        } catch (error) {
+          console.log("Error fetching forms:", error);
+        }
+      }
+      fetchForms();
+      console.log("Page reloaded");
+    });
+
+    return unsubscribe;
+  }, [navigation]);
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -72,7 +173,6 @@ export default function HomePage() {
     fetchUsername();
     fetchForms();
   }, []);
-  const navigation = useNavigation();
   function formDetailsHandler(item) {
     AsyncStorage.setItem("formId", item.formID);
     navigation.navigate("Form Details", { item: item });
@@ -123,6 +223,14 @@ export default function HomePage() {
             <ScrollView
               style={{ height: "30%", marginTop: 30 }}
               contentContainerStyle={{ alignItems: "center" }}
+              refreshControl={
+                <RefreshControl
+                  tintColor="white"
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={["#fffffa", "#ffffff"]}
+                />
+              }
             >
               {forms.map((item) => {
                 return (
@@ -146,8 +254,8 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     alignItems: "center",
-    padding: 40,
     backgroundColor: "#161616",
+    paddingTop: Platform.OS == "android" && 30,
   },
   text: {
     fontFamily: "NanumGothic_400Regular",

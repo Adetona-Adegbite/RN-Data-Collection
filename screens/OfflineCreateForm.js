@@ -26,7 +26,7 @@ import NetInfo from "@react-native-community/netinfo";
 
 const db = FIREBASE_DB;
 
-const FormCreationPage = () => {
+const OfflineFormCreationPage = () => {
   const navigation = useNavigation();
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
@@ -39,73 +39,35 @@ const FormCreationPage = () => {
     async function getUserData() {
       const response = await AsyncStorage.getItem("userData");
       const data = JSON.parse(response);
-      // console.log(data);
+      //   console.log(data);
       setUserData(data);
     }
     getUserData();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsConnected(state.isConnected);
-      console.log("offline state", state.isConnected);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   async function submitForm() {
-    if (!isConnected) {
-      console.log("offline");
-      const randomUUID = uuid.v1();
+    forms = AsyncStorage.getItem("offline-forms");
+    const randomUUID = uuid.v1();
+    try {
       const fiveDigitCode = randomUUID.substr(0, 5);
 
-      try {
-        const offlineFormData = {
-          id: userData.uid + fiveDigitCode,
-          creatorId: userData.uid,
-          title: formTitle,
-          description: formDescription,
-          questions: questions,
-        };
-        await AsyncStorage.setItem(
-          "offlineFormData",
-          JSON.stringify(offlineFormData)
-        );
-        Alert.alert(
-          "Form data saved offline",
-          "Please submit the form when you are online."
-        );
-      } catch (error) {
-        console.error("Error saving form data offline:", error);
-      }
-    } else {
-      const randomUUID = uuid.v1();
-      try {
-        const fiveDigitCode = randomUUID.substr(0, 5);
-        const formRef = doc(
-          db,
-          "users",
-          userData.uid,
-          "forms",
-          userData.uid + fiveDigitCode
-        );
-        const formDoc = {
-          id: userData.uid + fiveDigitCode,
-          creatorId: userData.uid,
-          title: formTitle,
-          description: formDescription,
-          questions: questions,
-        };
-        const response = await setDoc(
-          formRef,
-          JSON.parse(JSON.stringify(formDoc))
-        );
-        console.log(response);
-        navigation.navigate("Home");
-      } catch (e) {
-        console.log(e);
-      }
+      const formDoc = {
+        id: userData.uid + fiveDigitCode,
+        creatorId: userData.uid,
+        title: formTitle,
+        description: formDescription,
+        questions: questions,
+      };
+      let forms = await AsyncStorage.getItem("offline-forms");
+      forms = forms ? JSON.parse(forms) : [];
+
+      forms.push(formDoc);
+
+      await AsyncStorage.setItem("offline-forms", JSON.stringify(forms));
+      navigation.navigate("Home");
+      console.log(forms);
+    } catch (e) {
+      console.log(e);
     }
   }
 
@@ -137,7 +99,7 @@ const FormCreationPage = () => {
   }
 
   useEffect(() => {
-    console.log(questions);
+    // console.log(questions);
   }, [questions]);
 
   function newQuestionHandler() {
@@ -182,13 +144,10 @@ const FormCreationPage = () => {
           />
         ))}
       </ScrollView>
-      <View style={{ marginBottom: 20 }}>
-        <Button title="Create Form" onPress={submitForm} />
-      </View>
+      <Button title="Create Form" onPress={submitForm} />
     </KeyboardAvoidingView>
   );
 };
-
 const styles = StyleSheet.create({
   page: {
     flex: 1,
@@ -203,4 +162,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FormCreationPage;
+export default OfflineFormCreationPage;

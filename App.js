@@ -14,9 +14,14 @@ import AuthenticationCheck from "./screens/AuthenticationCheck";
 import { PaperProvider } from "react-native-paper";
 import FormPage from "./screens/FormPage";
 import NetInfo from "@react-native-community/netinfo";
+import SavedPage from "./screens/SavedForms";
+import OfflineFormCreationPage from "./screens/OfflineCreateForm";
+import OfflineFormPage from "./screens/OfflineFormPage";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function App() {
   // AsyncStorage.clear();
+
   useEffect(() => {
     const checkFormDataAndUpload = async () => {
       // Check AsyncStorage for stored form data
@@ -53,17 +58,7 @@ export default function App() {
     // Call the function on app startup
     checkFormDataAndUpload();
   }, []);
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      if (!state.isConnected) {
-        console.log("No internet");
-        const navigation = useNavigation();
-        navigation.navigate("Create Form");
-      }
-    });
 
-    return () => unsubscribe();
-  }, []);
   const Tab = createBottomTabNavigator();
   const Stack = createNativeStackNavigator();
   function StackScreen() {
@@ -84,8 +79,35 @@ export default function App() {
           name="Create Form"
           component={CreateForm}
         />
+        <Stack.Screen
+          options={{ presentation: "modal" }}
+          name="Offline"
+          component={OfflineFormCreationPage}
+        />
         <Stack.Screen name="Form Details" component={FormDetails} />
         <Stack.Screen name="Form Page" component={FormPage} />
+      </Stack.Navigator>
+    );
+  }
+  function OfflineStackScreen() {
+    return (
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="Home" component={SavedPage} />
+
+        <Stack.Screen
+          options={{ presentation: "modal" }}
+          name="Offline Create Form"
+          component={OfflineFormCreationPage}
+        />
+        <Stack.Screen
+          // options={{ presentation: "modal" }}
+          name="Offline Form Page"
+          component={OfflineFormPage}
+        />
       </Stack.Navigator>
     );
   }
@@ -101,8 +123,51 @@ export default function App() {
           headerShown: false,
         }}
       >
-        <Tab.Screen name="Create" component={StackScreen} />
-        <Tab.Screen name="Search" component={SearchPage} />
+        <Tab.Screen
+          options={{
+            tabBarIcon: ({ focused }) => {
+              return (
+                <Ionicons
+                  name="home-sharp"
+                  size={24}
+                  color={focused ? "white" : "gray"}
+                />
+              );
+            },
+          }}
+          name="Create"
+          component={StackScreen}
+        />
+        <Tab.Screen
+          options={{
+            tabBarIcon: ({ focused }) => {
+              return (
+                <Ionicons
+                  name="search-sharp"
+                  size={24}
+                  color={focused ? "white" : "gray"}
+                />
+              );
+            },
+          }}
+          name="Search"
+          component={SearchPage}
+        />
+        <Tab.Screen
+          options={{
+            tabBarIcon: ({ focused }) => {
+              return (
+                <Ionicons
+                  name="heart-sharp"
+                  size={24}
+                  color={focused ? "white" : "gray"}
+                />
+              );
+            },
+          }}
+          name="Saved"
+          component={OfflineStackScreen}
+        />
       </Tab.Navigator>
     );
   }
@@ -115,7 +180,6 @@ export default function App() {
           }}
         >
           <Stack.Screen name="AuthCheck" component={AuthenticationCheck} />
-
           <Stack.Screen name="Register" component={Register} />
           <Stack.Screen name="Signin" component={Signin} />
           <Stack.Screen name="Main" component={BottomTabs} />

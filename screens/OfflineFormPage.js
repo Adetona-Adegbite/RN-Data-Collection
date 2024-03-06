@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
+  Alert,
   Button,
   SafeAreaView,
   ScrollView,
@@ -25,14 +26,14 @@ import {
   NanumGothic_400Regular,
 } from "@expo-google-fonts/nanum-gothic";
 
-export default function FormPage({ route }) {
+export default function OfflineFormPage({ route }) {
   const db = FIREBASE_DB;
+  const [fontLoaded] = useFonts({ NanumGothic_400Regular });
+
   const navigation = useNavigation();
   const [uid, setUid] = useState("");
   const [formData, setFormData] = useState("");
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [fontLoaded] = useFonts({ NanumGothic_400Regular });
-
   useLayoutEffect(() => {
     async function preLoad() {
       const userData = await AsyncStorage.getItem("userData");
@@ -82,15 +83,32 @@ export default function FormPage({ route }) {
     // console.log(payload);
     // console.log(formData);
     try {
-      const docRef = doc(
-        db,
-        "form-submissions",
-        formData.id,
-        "user-responses",
-        uid + Math.random(0, 1).toString().substring(0, 4)
+      //   const docRef = doc(
+      //     db,
+      //     "form-submissions",
+      //     formData.id,
+      //     "user-responses",
+      //     uid + Math.random(0, 1).toString().substring(0, 4)
+      //   );
+      //   await setDoc(docRef, payload);
+      //   console.log("Form submitted successfully!");
+      let storedResponses = await AsyncStorage.getItem("formResponses");
+      storedResponses = storedResponses ? JSON.parse(storedResponses) : [];
+
+      // Add new response object to the responses array
+      storedResponses.push(payload);
+
+      // Store updated responses back in AsyncStorage
+      await AsyncStorage.setItem(
+        "formResponses",
+        JSON.stringify(storedResponses)
       );
-      await setDoc(docRef, payload);
-      console.log("Form submitted successfully!");
+
+      console.log("Response stored successfully:", storedResponses);
+      Alert.alert(
+        "Response Saved Successfully",
+        "When connected to internet, go to saved page to commit all responses to database"
+      );
       navigation.navigate("Home");
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -224,7 +242,7 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     alignItems: "center",
-    padding: 40,
+    paddingTop: Platform.OS == "android" && 30,
     backgroundColor: "#161616",
   },
   title: {
@@ -244,10 +262,9 @@ const styles = StyleSheet.create({
   },
   number: {
     fontSize: 20,
-    fontFamily: "NanumGothic_400Regular",
-
     fontWeight: "bold",
     marginBottom: 10,
+    fontFamily: "NanumGothic_400Regular",
   },
   question: {
     width: "75%",
@@ -270,7 +287,6 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     color: "white",
-    fontFamily: "NanumGothic_400Regular",
   },
   text: {
     color: "black",

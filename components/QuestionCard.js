@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, StyleSheet, Text, TextInput, View } from "react-native";
 // import { v4 } from "uuid";
 
-export default function ({ onAdd, questions }) {
+export default function ({ onAdd, questions, onRemove }) {
   const [question, setQuestion] = useState("");
   const [questionType, setQuestionType] = useState(0);
   const [numberOfChoices, setNumberOfChoices] = useState(2);
@@ -45,6 +45,11 @@ export default function ({ onAdd, questions }) {
       }
     }
   }
+  function removeHandler() {
+    setQuestionAdded(false);
+    setQuestion("");
+    onRemove();
+  }
   // useEffect(() => {
   //   console.log(allData);
   // }, [allData]);
@@ -65,6 +70,7 @@ export default function ({ onAdd, questions }) {
           borderRadius: 10,
           margin: 10,
         }}
+        value={question}
       />
       <Picker
         mode="dropdown"
@@ -119,6 +125,7 @@ export default function ({ onAdd, questions }) {
         </>
       )}
       <Button title="Add" onPress={addHandler} />
+      <Button title="Remove" onPress={removeHandler} />
 
       {questionAdded && <Text>Added</Text>}
     </View>

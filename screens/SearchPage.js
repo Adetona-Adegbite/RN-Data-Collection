@@ -55,6 +55,7 @@ export default function SearchPage() {
         Alert.alert(errorMessage);
       } finally {
         setFormCode("");
+        setLoading(false);
       }
     }
   }
@@ -85,6 +86,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     backgroundColor: "#161616",
+    paddingTop: Platform.OS == "android" && 30,
   },
   title: {
     fontFamily: "NanumGothic_400Regular",
