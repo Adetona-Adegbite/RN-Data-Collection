@@ -21,6 +21,7 @@
     "@react-navigation/native-stack": "^6.9.17",
     "expo": "~49.0.15",
     "expo-checkbox": "^2.5.0",
+    "expo-cli": "^6.3.10",
     "expo-clipboard": "~4.3.1",
     "expo-font": "~11.4.0",
     "expo-sharing": "~11.5.0",

@@ -1,0 +1,63 @@
+.page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 30px;
+  background-color: #161616;
+}
+
+.title {
+  font-size: 32px;
+  margin: 10px 0;
+  color: white;
+  font-family: "NanumGothic", sans-serif;
+}
+
+.description {
+  width: 60%;
+}
+
+.text {
+  color: white;
+  font-family: "NanumGothic", sans-serif;
+}
+
+.form {
+  background-color: #859982;
+  border-radius: 10px;
+  width: 90%;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.analysisHeader {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin: 20px 0 50px;
+  font-family: "NanumGothic", sans-serif;
+}
+
+.analysisItem {
+  background-color: #dfe4e6;
+  padding: 10px;
+  border-radius: 5px;
+  width: 60%;
+  margin-bottom: 10px;
+}
+
+.analysisQuestion {
+  color: black;
+  font-size: 20px;
+  margin-bottom: 5px;
+  font-family: "NanumGothic", sans-serif;
+}
+
+.analysisOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}

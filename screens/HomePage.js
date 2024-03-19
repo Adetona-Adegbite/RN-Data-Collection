@@ -235,7 +235,7 @@ export default function HomePage() {
               {forms.map((item) => {
                 return (
                   <FormCard
-                    key={item.id}
+                    key={item.formID}
                     title={item.title}
                     id={item.formID}
                     onPress={formDetailsHandler.bind(this, item)}
