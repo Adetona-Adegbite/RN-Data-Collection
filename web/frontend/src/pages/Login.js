@@ -91,7 +91,7 @@ export default function Login() {
             type="button"
             className={classes.button}
           >
-            {loading ? <span className={classes.loader}></span> : "Login"}
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
         <p
@@ -104,14 +104,14 @@ export default function Login() {
         >
           {error}
         </p>
-        {/* <div className={classes.signup}>
+        <div className={classes.signup}>
           <span className={classes.signup}>
             Don't have an account?
             <label onClick={switchToSignupHandler} for="check">
               Signup
             </label>
           </span>
-        </div> */}
+        </div>
       </div>
     </div>
   );

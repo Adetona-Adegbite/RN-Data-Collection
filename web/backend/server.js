@@ -4,7 +4,11 @@ const admin = require("firebase-admin");
 const serviceAccount = require("./confidential/serviceAccountKey.json");
 const bodyParser = require("body-parser");
 const uuid = require("uuid");
-const { getAuth, signInWithEmailAndPassword } = require("firebase/auth");
+const {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} = require("firebase/auth");
 const {
   doc,
   collection,
@@ -110,6 +114,54 @@ app.post("/user", async (req, res) => {
   //     res.send("No user signed in");
   //   }
 });
+
+app.post("/register", async (req, res) => {
+  const { email, password, username } = req.body;
+
+  async function registerUser() {
+    try {
+      const response = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      return response;
+    } catch (e) {
+      return e;
+    }
+  }
+
+  const response = await registerUser();
+  console.log(response);
+
+  try {
+    if (response.code) {
+      if (response.code === "auth/email-already-in-use") {
+        console.log("Email already in use");
+        res.status(400).json({ error: "Email already in use" });
+      } else {
+        console.log("Registration failed:", response.message);
+        res.status(400).json({ error: response.message });
+      }
+    } else {
+      console.log("User Registered Successfully", response.user.uid);
+      const userDocRef = doc(
+        FIREBASE_DB,
+        "users",
+        response.user.uid.substring(0, 4)
+      );
+      await setDoc(userDocRef, {
+        email: response.user.email,
+        username: username,
+      });
+      res.json(response.user.uid);
+    }
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Get Forms
 app.post("/forms", async (req, res) => {
   const { userUID } = req.body;
